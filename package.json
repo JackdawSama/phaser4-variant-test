@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@esotericsoftware/spine-phaser-v4": "4.2.102",
-    "phaser": "4.0.0-rc.6"
+    "node.js": "^0.0.1-security",
+    "phaser": "4.0.0-rc.6",
+    "poly-decomp": "^0.3.0",
+    "vite": "^8.0.3"
   }
 }

@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
 import { SpinePlugin } from '@esotericsoftware/spine-phaser-v4';
 
+//AKSHAY's edit: Adding in decomp for physics stuff
+import decomp from 'poly-decomp';
+window.decomp = decomp;
+
 /** Portrait 9:16 — same aspect as Variant games (e.g. 720×1280). */
 const VIEW_W = 720;
 const VIEW_H = 720;
 
 /** Shared Variant man rig — see public/spine/man/animations.json & ANIMATIONS.md */
 const DEMO_IDLE = 'Idle';
-const DEMO_ACTION = 'Jump';
+const DEMO_WALK = 'duo_left_Push';
 
 class HelloScene extends Phaser.Scene {
   constructor() {
@@ -40,18 +44,69 @@ class HelloScene extends Phaser.Scene {
         fontFamily: 'system-ui, sans-serif'
       })
       .setOrigin(0.5, 0);
+    
 
-    this.hero = this.add.spine(width * 0.0, height * 0.72, 'man', 'manAtlas');
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x888888);
+    graphics.fillTriangle(0, 600, 1600, 600, 1600, 100);
+
+    const slopeAngle = Math.atan2(100 - 600, 1600 - 0); // negative = rising left to right
+
+    const slope = this.matter.add.rectangle(
+      800, 350,   // approximate center of the hypotenuse
+      1650,       // length (slightly longer than width to cover full surface)
+      20,         // thin thickness
+      {
+        isStatic: true,
+        angle: slopeAngle,
+        friction: 0.5,
+        label: 'slope'
+      }
+    );
+
+    this.hero = this.add.spine(width * 0.3, height * 0.5, 'man', 'manAtlas');
     this.hero.setDepth(10);
     this.hero.setScale(0.1);
     this.hero.animationState.data.defaultMix = 0.15;
     this.hero.animationState.setAnimation(0, DEMO_IDLE, true);
     this.hero.skeleton.scaleX = Math.abs(this.hero.skeleton.scaleX);
 
-    this.input.keyboard?.on('keydown-SPACE', () => {
-      this.hero.animationState.setAnimation(0, DEMO_ACTION, false);
-      this.hero.animationState.addAnimation(0, DEMO_IDLE, true, 0);
+    this.heroBody = this.matter.add.rectangle(
+      width * 0.3, height * 0.2 - 50, // subtract half of hitbox height (80/2 = 40)
+      15,
+      100,
+      {
+        friction: 1.0,
+        restitution: 0,
+        label: 'hero',
+        fixedRotation: true
+      }
+    );
+    this.matter.body.setInertia(this.heroBody, Infinity);
+  
+    //AKSHAY's edit: Checking for Animation end to make sure input is ignored till the animation is complete 
+    this.isAnimating = false;
+
+    this.hero.animationState.addListener({
+      complete: (entry) => {
+        if(entry.animation.name === DEMO_WALK) {
+          this.isAnimating = false;
+        }
+      }
     });
+
+    //AKSHAY's edit: Function for reading movement input
+    const onPress = () => {
+      if(this.isAnimating) return;
+
+      this.isAnimating = true;
+      this.hero.animationState.setAnimation(0, DEMO_WALK, false);
+      this.hero.animationState.addAnimation(0, DEMO_IDLE, true, 0);
+    };
+
+    //AKSHAY's edit: Checking for inputs and release
+    this.input.keyboard?.on('keydown-RIGHT', onPress);
+    this.input.keyboard?.on('keydown-D', onPress);
 
     this.add
       .text(width / 2, height - 36, 'Animations: public/spine/man/animations.json & ANIMATIONS.md', {
@@ -77,6 +132,9 @@ class HelloScene extends Phaser.Scene {
       this.direction = 1;
       this.hero.skeleton.scaleX = Math.abs(this.hero.skeleton.scaleX);
     }
+
+    this.hero.x = this.heroBody.position.x;
+    this.hero.y = this.heroBody.position.y + 50; //adding half of height to set the collider to match with the center of the spine character
   }
 }
 
@@ -93,6 +151,13 @@ const config = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  physics: {
+    default: 'matter',
+    matter: {
+      gravity: { y: 1 },
+      debug: true
+    }
   }
 };
 
