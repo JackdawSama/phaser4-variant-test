@@ -7,7 +7,7 @@ window.decomp = decomp;
 
 /** Portrait 9:16 — same aspect as Variant games (e.g. 720×1280). */
 const VIEW_W = 720;
-const VIEW_H = 720;
+const VIEW_H = 720;   //edited this value because wheneve I pressed Space as input the window scrolled. Easier solution for me was to make it into a smaller window.
 
 /** Shared Variant man rig — see public/spine/man/animations.json & ANIMATIONS.md */
 const DEMO_IDLE = 'Idle';
@@ -65,6 +65,10 @@ class HelloScene extends Phaser.Scene {
       }
     );
 
+    /** AKSHAY's Edi: This array is for creating the bumps which occure on the slope. within each iteration
+     * the bump is created, a collider is added to it, it is placed on the slope and its positions are randomised
+     * every time the project is compiled and run. So one run is different from another.
+     */
     this.bumps = [];
     const bumpCount = 7;
     const minDist = 100;
@@ -95,6 +99,10 @@ class HelloScene extends Phaser.Scene {
       });
     }
 
+    /**
+     * Collision check for the bumps. When the boulder collides with the bump there's an addition force applied in the opposite direction 
+     * and opposite to gravity to make the boulder bounce more
+     */
     this.matter.world.on('collisionstart', (event) => {
       event.pairs.forEach((pair) => {
         if (
@@ -116,13 +124,13 @@ class HelloScene extends Phaser.Scene {
     this.hero.animationState.setAnimation(0, DEMO_IDLE, true);
     this.hero.skeleton.scaleX = Math.abs(this.hero.skeleton.scaleX);
 
-    this.heroX = 50;
+    this.heroX = 50;  //hero character's position being set at the start of the slide
     this.heroBody = this.matter.add.rectangle(
     this.heroX,
       600 + ((100 - 600) / 1600) * this.heroX - 50,
       15, 100,
         {
-          isStatic: true,  // static — we move it manually, slope can't push it
+          isStatic: true,  // static — move it manually, slope can't push it. Probably not the best way to handle physics in an engine
           label: 'hero',
           friction: 1,
           restitution: 0
@@ -133,6 +141,7 @@ class HelloScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, -2000, 1600, 2720);
     this.cameras.main.startFollow(this.hero, true, 0.1, 0.1);
 
+    /** graphics for the boulder and the collider */
     this.boulderGraphic = this.add.graphics();
     this.boulderGraphic.fillStyle(0x888888);
     this.boulderGraphic.fillCircle(0, 0, 50); // 0,0 because position is synced in update
@@ -150,6 +159,7 @@ class HelloScene extends Phaser.Scene {
       }
     );
     
+    /** checking if it is GameOver */
     this.isGameOver = false;
 
     /** AKSHAY's edit: Checking for Animation end to make sure input is ignored till the animation is complete */
@@ -206,6 +216,10 @@ class HelloScene extends Phaser.Scene {
     /** AKSHAY's edit: Collision Check for Boulder and Player to make sure that boulder is pushed only when player is in touch with it */
     this.isTouchingBoulder = false;
 
+    /**
+     * Collision detection between the boulder and the player because I didn't want a force to be applied 
+     * whenever I presed the right key. I only wanted one to be applied when hero touches the boulder
+     */
     this.matter.world.on('collisionstart', (event) => {
       event.pairs.forEach((pair) => {
         if (
